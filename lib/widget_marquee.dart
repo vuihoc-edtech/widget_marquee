@@ -1,5 +1,7 @@
 library widget_marquee;
 
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 
 /// Creates an animation that loops any [child] that is to wide to fit in the view space.
@@ -7,6 +9,7 @@ class Marquee extends StatefulWidget {
   const Marquee({
     super.key,
     required this.child,
+    this.pixelPerSec = 100,
     this.delay = const Duration(seconds: 10),
     this.disableAnimation = false,
     this.duration = const Duration(seconds: 10),
@@ -17,6 +20,8 @@ class Marquee extends StatefulWidget {
 
   /// Widget to display in marquee
   final Widget child;
+
+  final int pixelPerSec;
 
   /// Duration to wait before starting animation
   final Duration delay;
@@ -44,6 +49,7 @@ class _MarqueeState extends State<Marquee> with SingleTickerProviderStateMixin {
   late final AnimationController animationController;
   late final Animation<Offset> offset;
   late final ScrollController scrollController;
+  //final _content = <Widget>[];
 
   String id = '';
   ValueNotifier<bool> shouldScroll = ValueNotifier<bool>(false);
@@ -90,20 +96,18 @@ class _MarqueeState extends State<Marquee> with SingleTickerProviderStateMixin {
   }
 
   animationHandler() async {
-    if (scrollController.position.maxScrollExtent > 0) {
+    final width = MediaQuery.of(context).size.width;
+    final maxScrollExtent = scrollController.position.maxScrollExtent;
+    log('==huy maxScrollExtent ${maxScrollExtent} width $width shouldScroll.value ${shouldScroll.value} mounted $mounted');
+    if (maxScrollExtent > 0) {
       shouldScroll.value = true;
-
-      await Future.delayed(widget.delay);
-
+      log('==huy shouldScroll.value ${shouldScroll.value} mounted $mounted');
       if (shouldScroll.value && mounted) {
-        animationController.forward().then((_) async {
-          animationController.reset();
-          await Future.delayed(widget.pause);
-
-          if (shouldScroll.value && mounted) {
-            animationHandler();
-          }
-        });
+        final seconds = (maxScrollExtent / width).ceil();
+        log('==huy seconds $seconds');
+        final duration =
+            widget.duration.inSeconds < seconds ? Duration(seconds: seconds) : widget.duration;
+        animationController.repeat(period: duration);
       }
     }
   }
@@ -122,16 +126,12 @@ class _MarqueeState extends State<Marquee> with SingleTickerProviderStateMixin {
             return Row(
               children: [
                 Padding(
-                  padding: EdgeInsets.only(
-                    right: shouldScroll ? widget.gap : 0,
-                  ),
+                  padding: EdgeInsets.only(right: widget.gap),
                   child: widget.child,
                 ),
                 if (shouldScroll)
                   Padding(
-                    padding: EdgeInsets.only(
-                      right: widget.gap,
-                    ),
+                    padding: EdgeInsets.only(right: widget.gap),
                     child: widget.child,
                   ),
               ],
